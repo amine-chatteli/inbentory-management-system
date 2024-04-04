@@ -134,3 +134,170 @@ def delete_product(request):
     
     return HttpResponse(json.dumps(resp), content_type="application/json")
 
+@login_required
+def inventory(request):
+    context['page_title'] = 'Inventory'
+
+    products = Product.objects.all()
+    context['products'] = products
+
+    return render(request, 'inventory.html', context)
+
+@login_required
+def inv_history(request, pk= None):
+    context['page_title'] = 'Inventory History'
+    if pk is None:
+        messages.error(request, "Product ID is not recognized")
+        return redirect('inventory-page')
+    else:
+        product = Product.objects.get(id = pk)
+        stocks = Stock.objects.filter(product = product).all()
+        context['product'] = product
+        context['stocks'] = stocks
+
+        return render(request, 'inventory-history.html', context )
+
+@login_required
+def manage_stock(request,pid = None ,pk = None):
+    if pid is None:
+        messages.error(request, "Product ID is not recognized")
+        return redirect('inventory-page')
+    context['pid'] = pid
+    if pk is None:
+        context['page_title'] = "Add New Stock"
+        context['stock'] = {}
+    else:
+        context['page_title'] = "Manage New Stock"
+        stock = Stock.objects.get(id = pk)
+        context['stock'] = stock
+    
+    return render(request, 'manage_stock.html', context )
+
+@login_required
+def save_stock(request):
+    resp = {'status':'failed','msg':''}
+    if request.method == 'POST':
+        if (request.POST['id']).isnumeric():
+            stock = Stock.objects.get(pk=request.POST['id'])
+        else:
+            stock = None
+        if stock is None:
+            form = SaveStock(request.POST)
+        else:
+            form = SaveStock(request.POST, instance= stock)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Stock has been saved successfully.')
+            resp['status'] = 'success'
+        else:
+            for fields in form:
+                for error in fields.errors:
+                    resp['msg'] += str(error + "<br>")
+    else:
+        resp['msg'] = 'No data has been sent.'
+    return HttpResponse(json.dumps(resp), content_type = 'application/json')
+
+@login_required
+def delete_stock(request):
+    resp = {'status':'failed', 'msg':''}
+
+    if request.method == 'POST':
+        try:
+            stock = Stock.objects.get(id = request.POST['id'])
+            stock.delete()
+            messages.success(request, 'Stock has been deleted successfully')
+            resp['status'] = 'success'
+        except Exception as err:
+            resp['msg'] = 'Stock has failed to delete'
+            print(err)
+
+    else:
+        resp['msg'] = 'Stock has failed to delete'
+    
+    return HttpResponse(json.dumps(resp), content_type="application/json")
+
+
+@login_required
+def sales_mgt(request):
+    context['page_title'] = 'Sales'
+    products = Product.objects.filter(status = 1).all()
+    context['products'] = products
+    return render(request,'sales.html', context)
+
+
+def get_product(request,pk = None):
+    resp = {'status':'failed','data':{},'msg':''}
+    if pk is None:
+        resp['msg'] = 'Product ID is not recognized'
+    else:
+        product = Product.objects.get(id = pk)
+        resp['data']['product'] = str(product.code + " - " + product.name)
+        resp['data']['id'] = product.id
+        resp['data']['price'] = product.price
+        resp['status'] = 'success'
+    
+    return HttpResponse(json.dumps(resp),content_type="application/json")
+
+
+def save_sales(request):
+    resp = {'status':'failed', 'msg' : ''}
+    id = 2
+    if request.method == 'POST':
+        pids = request.POST.getlist('pid[]')
+        invoice_form = SaveInvoice(request.POST)
+        if invoice_form.is_valid():
+            invoice_form.save()
+            invoice = Invoice.objects.last()
+            for pid in pids:
+                data = {
+                    'invoice':invoice.id,
+                    'product':pid,
+                    'quantity':request.POST['quantity['+str(pid)+']'],
+                    'price':request.POST['price['+str(pid)+']'],
+                }
+                print(data)
+                ii_form = SaveInvoiceItem(data=data)
+                # print(ii_form.data)
+                if ii_form.is_valid():
+                    ii_form.save()
+                else:
+                    for fields in ii_form:
+                        for error in fields.errors:
+                            resp['msg'] += str(error + "<br>")
+                    break
+            messages.success(request, "Sale Transaction has been saved.")
+            resp['status'] = 'success'
+        else:
+            for fields in invoice_form:
+                for error in fields.errors:
+                    resp['msg'] += str(error + "<br>")
+
+    return HttpResponse(json.dumps(resp),content_type="application/json")
+
+@login_required
+def invoices(request):
+    invoice =  Invoice.objects.all()
+    context['page_title'] = 'Invoices'
+    context['invoices'] = invoice
+
+    return render(request, 'invoices.html', context)
+
+@login_required
+def delete_invoice(request):
+    resp = {'status':'failed', 'msg':''}
+
+    if request.method == 'POST':
+        try:
+            invoice = Invoice.objects.get(id = request.POST['id'])
+            invoice.delete()
+            messages.success(request, 'Invoice has been deleted successfully')
+            resp['status'] = 'success'
+        except Exception as err:
+            resp['msg'] = 'Invoice has failed to delete'
+            print(err)
+
+    else:
+        resp['msg'] = 'Invoice has failed to delete'
+    
+    return HttpResponse(json.dumps(resp), content_type="application/json")
+    

@@ -16,5 +16,17 @@ urlpatterns = [
     path('save_product',views.save_product,name='save-product'),
     path('manage_product/<int:pk>',views.manage_product,name='manage-product-pk'),
     path('delete_product',views.delete_product,name='delete-product'),
-   
+    path('inventory',views.inventory,name='inventory-page'),
+    path('inventory/<int:pk>',views.inv_history,name='inventory-history-page'),
+    path('stock/<int:pid>',views.manage_stock,name='manage-stock'),
+    path('stock/<int:pid>/<int:pk>',views.manage_stock,name='manage-stock-pk'),
+    path('save_stock',views.save_stock,name='save-stock'),
+    path('delete_stock',views.delete_stock,name='delete-stock'),
+    path('sales',views.sales_mgt,name='sales-page'),
+    path('get_product',views.get_product,name='get-product'),
+    path('get_product/<int:pk>',views.get_product),
+    path('save_sales',views.save_sales, name="save-sales"),
+    path('invoices',views.invoices,name='invoice-page'),
+    path('delete_invoice',views.delete_invoice,name='delete-invoice'),
+
 ]
